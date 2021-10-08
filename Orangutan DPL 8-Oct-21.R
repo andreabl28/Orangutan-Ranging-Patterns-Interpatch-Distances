@@ -102,10 +102,6 @@ bouts_per_follow<-filter(bouts_per_follow, Makan.Start.bout2=="S")
 BIB.dat4<-merge(BIB.dat3, bouts_per_follow, by ="follow")
 #drop column
 BIB.dat4= subset(BIB.dat4, select = -c(Makan.Start.bout2.y))
-#combine S & number
-#probably needs to be cleaned up (remove NA's and only numbers)
-BIB.dat4$S_makan_num<-paste(BIB.dat4$Makan.Start.bout2.x, BIB.dat4$Makan.Bout.number)
-
 
 #row is or is not a feeding bout
 BIB.dat4$is_feed<-ifelse(BIB.dat4$Buat.1 != "M","not feed","feed")
@@ -114,66 +110,46 @@ BIB.dat4$is_feed<-ifelse(BIB.dat4$Buat.1 != "M","not feed","feed")
 #with the most recent non-NA value prior to it.
 
 #order dataset by timestamp
-BIB.dat5<-BIB.dat5[order(as.POSIXct(BIB.dat5$timestamp.y)),]
-#group by follow and replace
-x %>% group_by(id) %>% transmute(date=na.locf(date, na.rm=FALSE))
+BIB.dat5<-BIB.dat4[order(as.POSIXct(BIB.dat4$timestamp.y)),]
+#group by follow and add the feeding bout number that preceeds a non-feeding behavior
 BIB.dat6<-BIB.dat5 %>% 
   group_by(follow, .drop=FALSE, add=TRUE) %>% 
-  transmute(Makan.Bout.number5=na.locf(Makan.Bout.number, na.rm=FALSE))%>%
+  transmute(Makan.Bout.number2=na.locf(Makan.Bout.number, na.rm=FALSE))%>%
   ungroup()
 #add new columns onto dataset
 BIB.dat7<-cbind(BIB.dat5, BIB.dat6)
 
+#Turn behaviors into categories to filter by, so we only add distances for the categories that we want
 
-#----------------------things may or may not work below-----------------
-# mutate missing values
-df %>%
-  mutate(MonthlyCharges
-         = replace(MonthlyCharges,
-                   is.na(MonthlyCharges),
-                   median(MonthlyCharges, na.rm = TRUE)))
-
-
-df1<- df %>%
-  complete(Timestamp = seq(min(Timestamp), max(Timestamp), by = "sec")) %>%
-  mutate_at(vars(A:C), ~replace(., is.na(.), 0 )) %>%
-  mutate(ID = row_number())
+#combine 'feed or not feed behavior' & most recent feeding bout number
+#probably needs to be cleaned up (remove NA's and only numbers)
+BIB.dat7$makan_num<-paste(BIB.dat7$Makan.Bout.number2, BIB.dat7$is_feed)
+BIB.dat7$S_makan_num<-paste(BIB.dat7$Makan.Start.bout2.x, BIB.dat7$makan_num)
+#change into factors
+#BIB.dat7$S_makan_num<-as.factor(BIB.dat7$S_makan_num)
 
 
 
-library(tidyverse)
-data2 <- data %>%
-  mutate(day = as.Date(daytime)) %>%
-  count(day, category) %>%
-  spread(category, n)
-data2
+#recode data values
+#recode(char_vec, a = "Apple", b = "Banana")
+BIB.dat7$S_makan_cat<-recode(BIB.dat7$S_makan_num, 
+  " 1 not feed" = "cat 1_2", "S 2 feed" = "cat 1_2",
+  " 2 not feed" = "cat 2_3", "S 3 feed" = "cat 2_3", 
+  " 3 not feed" = "cat 3_4", "S 4 feed" = "cat 3_4",
+  " 4 not feed" = "cat 4_5", "S 5 feed" = "cat 4_5",
+  " 5 not feed" = "cat 5_6", "S 6 feed" = "cat 5_6",
+  " 6 not feed" = "cat 5_6", "S 7 feed" = "cat 6_7",
+  " 7 not feed" = "cat 7_8", "S 8 feed" = "cat 7_8",
+  " 8 not feed" = "cat 8_9", "S 9 feed" = "cat 8_9")
 
-#' Make timestamp a date/time variable
-BIB.dat4$daytime<-as.POSIXct(BIB.dat4$timestamp2, format="%Y-%m-%d %H:%M:%OS", tz="UTC")
-
-BIB.dat5<-BIB.dat4 %>%
-  count(daytime, Makan.Start.bout2.x) %>%
-  spread(Makan.Start.bout2.x, n)
-BIB.dat5
-
-
-BIB.dat6 <- cbind(BIB.dat4$Buat.1, ifelse(BIB.dat4$Buat.1 =="M", BIB.dat4$Buat.stop == "stop"))
-
-
-
-#counting the number of 'S' feeding bouts per day
-aggregate(data = BIB.dat4, Makan.Start.bout2.x~follow, FUN = "count")
-
-#-------------adding distances
-
-#how far does an orangutan travel in a day. Adds up all distances per follow.
-aggregate(data = BIB.dat4, BIB.dist~follow, FUN = "sum")
-
-aggregate(x$Frequency, by=list(Category=x$Category), FUN=sum)
 #would need to filter before
-aggregate(BIB.dat4$BIB.dist, by=list(Category=BIB.dat4$follow, BIB.dat4$BIB.dat4$S_makan), FUN=sum)
+BIB_distances<-aggregate(BIB.dat7$BIB.dist, by=list(Category=BIB.dat7$follow, BIB.dat7$S_makan_cat), FUN=sum)
+BIB_distances$S_makan_cat<-BIB_distances$Group.2
 
+#select just for the categories
+BIB_distances<-filter(BIB_distances, S_makan_cat == "cat 1_2" | S_makan_cat == "cat 2_3" | S_makan_cat == "cat 3_4" |
+        S_makan_cat == "cat 4_5" | S_makan_cat == "cat 5_6" | S_makan_cat == "cat 6_7" | S_makan_cat == "cat 7_8" |
+          S_makan_cat == "cat 8_9")
 
-
-
-
+mean(BIB_distances$x)
+#144m
