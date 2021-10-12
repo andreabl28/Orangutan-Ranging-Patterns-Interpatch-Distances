@@ -14,7 +14,7 @@ library(zoo)
 library(xts)
 
 #GP file exported from Movebank 7-Sept-2021
-GP<-read.csv("GPOCP.csv")
+GP<-read.csv("GPOCP.csv" ,row.names = 1)
 GP<-tbl_df(GP)
 
 #' Make timestamp a date/time variable
@@ -41,7 +41,7 @@ BIB.dat<-filter(BIB.dat, dup == "FALSE")
 
 #combine with orangutan behavioral data-------------------
 #read in Bibi's behavioral data
-BIB<-read.csv("BIB_behavioral_data.csv")
+BIB<-read.csv("BIB_behavioral_data.csv", row.names = 1)
 BIB$time<-paste(BIB$Date, BIB$Jam)
 BIB$timestamp<-as.POSIXct(BIB$time, format="%m-%d-%Y %H:%M:%OS", tz="UTC")
 BIB$timestamp2<-floor_date(BIB$timestamp, unit="minute", week_start = getOption("lubridate.week.start", 7))
@@ -64,7 +64,7 @@ BIB.move<-move(x=BIB.dat2$location.long, y=BIB.dat2$location.lat,
 BIB.dist<-distance(BIB.move)
 #add one value to even out the number of values to combine back into the dataframe
 BIB.dist<-c(BIB.dist, 1)
-#combine the distance into the BIB data
+#combine the distance into the BIB data----this isn't right-----
 BIB.dat3<-cbind(BIB.dat2, BIB.dist)
 
 #EXAMPLES------------------------------------------------
@@ -143,10 +143,16 @@ BIB_distances$S_makan_cat<-BIB_distances$Group.2
 #select just for the categories
 BIB_distances<-filter(BIB_distances, S_makan_cat == "cat 1_2" | S_makan_cat == "cat 2_3" | S_makan_cat == "cat 3_4" |
         S_makan_cat == "cat 4_5" | S_makan_cat == "cat 5_6" | S_makan_cat == "cat 6_7" | S_makan_cat == "cat 7_8" |
-          S_makan_cat == "cat 8_9")
+        S_makan_cat == "cat 8_9")
+
+BIB_distances$OH<-c(rep("BIB", nrow(BIB_distances)))
 
 mean(BIB_distances$x)
 #144m
+
+#add in OH offspring age based on follow #
+#read.csv()
+#merge(BIB_distances, by = "follow)
 
 #export dataset as a csv
 #write.csv(BIB_distances, "BIB_distances.csv")
