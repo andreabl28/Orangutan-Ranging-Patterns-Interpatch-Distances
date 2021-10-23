@@ -85,17 +85,10 @@ BIB.dat3$Makan.Start.bout2<-fct_recode(BIB.dat3$Makan.Start.bout, "S" = "S2", "S
 #f6747<-filter(BIB.dat3, follow == "6847")
                                 
 class(BIB.dat3$Makan.Bout.number)
-#max(BIB.dat3$Makan.Bout.number, na.rm=T)
 
-BIB.dat3$feeding_bout_num<-BIB.dat3$Makan.Bout.number
 #maximum feeding bout number per follow
-bouts_per_follow<-BIB.dat3 %>%
-  group_by(follow) %>%
-  summarise(max == max(Makan.Bout.number, na.rm=TRUE))
-
-bouts_per_follow<-BIB.dat3%>%
-  group_by(follow)%>%
-  count(Makan.Start.bout2)
+Makan.Bout.max<-aggregate(Makan.Bout.number ~ follow, data = BIB.dat3, max)
+BIB.dat4<-merge(BIB.dat3, Makan.Bout.max, by="follow")
 
 
 ##rename column
@@ -242,3 +235,12 @@ abline(reg1, col=c("blue"))
 
 #export dataset as a csv
 #write.csv(BIB_distances2, "BIB_distances.csv")
+
+
+#-------------
+#checking the data
+
+#194 observations
+BIB.6132<-filter(BIB, Summary.Reports.Master..Follow.Number == "6132")
+#157 observations
+BIB.join.6132<-filter(BIB.dat1, Summary.Reports.Master.2..Follow.Number == "6132")
