@@ -6,6 +6,7 @@ library(lubridate)
 library(forcats)
 library(zoo)
 library(xts)
+library(tidyr)
 
 #GP file exported from Movebank 7-Sept-2021
 GP<-read.csv("GPOCP.csv" ,row.names = 1)
@@ -30,7 +31,7 @@ BIB.dat<-filter(GP2, individual.local.identifier =="BIB")
 
 #identify duplicate timestamps
 BIB.dat$dup<-duplicated(BIB.dat$timestamp2)
-#remove duplicate timestamps (only removes 1 duplicate)
+#remove duplicated timestamps (only removes 1 duplicate) from the movebank GPS data
 BIB.dat<-filter(BIB.dat, dup == "FALSE")
 
 #combine with orangutan behavioral data-------------------
@@ -44,13 +45,11 @@ BIB<-filter(BIB, timestamp2 > "2013-06-01 00:00:00")
 #combine the movebank data with the behavioral data--------------------
 BIB.dat1<-inner_join(BIB, BIB.dat,  by="timestamp2")
 
-
 #remove duplicated timestamp values, but first copy of Makan Bout # and Makan start into both timestamps
 #order dataset by timestamp
-
 BIB.dat2<-BIB.dat1[order(as.POSIXct(BIB.dat1$timestamp2)),]
 #identify duplicate timestamps
-BIB.dat2$dup<-duplicated(BIB.dat2$timestamp2)
+BIB.dat2$dup2<-duplicated(BIB.dat2$timestamp2)
 
 #mutate -- move values in duplicated timestamps to both cells
 BIB.dat2<-BIB.dat2 %>%
@@ -58,14 +57,17 @@ BIB.dat2<-BIB.dat2 %>%
   mutate(start2= lag(Makan.Start.bout), start3= lead(Makan.Start.bout)) %>%
   mutate(makan2= lag(Makan.Bout.number), makan3 = lead(Makan.Bout.number))
 #https://stackoverflow.com/questions/27126609/copy-values-of-a-column-into-another-column-based-on-a-condition-using-a-loop
-BIB.dat2$start2<toupper(BIB.dat2$start2)
-BIB.dat2$start3<toupper(BIB.dat2$start3)
+BIB.dat2$start2<-toupper(BIB.dat2$start2)
+BIB.dat2$start3<-toupper(BIB.dat2$start3)
 table(BIB.dat2$start2)
 table(BIB.dat2$makan2)
 table(BIB.dat2$start3)
 table(BIB.dat2$makan3)
 
-BIB.dat2$makan.bout.num<-unite(BIB.dat2$Makan.Bout.number, BIB.dat2$makan2, BIB.dat2$makan3, na.rm=TRUE, remove=FALSE)
+#combine the start and makan bout number columns into one column
+
+#BIB.dat2$makan.bout.num<-unite(BIB.dat2$Makan.Bout.number, BIB.dat2$makan2, BIB.dat2$makan3, na.rm=TRUE, remove=FALSE)
+
 BIB.dat2$makan.bout.num<-
   ifelse(BIB.dat2$Makan.Bout.number>=1, paste(BIB.dat2$Makan.Bout.number), 
   ifelse(BIB.dat2$makan2>=1, paste(BIB.dat2$makan2), 
@@ -77,22 +79,20 @@ BIB.dat2$Makan.Start.bout<-as.factor(BIB.dat2$Makan.Start.bout)
 BIB.dat2$Makan.Start.bout2<-fct_recode(BIB.dat2$Makan.Start.bout, "S" = "S2", "S" = "S")
 #f6747<-filter(BIB.dat3, follow == "6847")
 
-
 #art$artname <- with(art, ifelse(trivname == "", as.character(latname), as.character(trivname)))
-#BIB.dat2$start.bout<- with(BIB.dat2, ifelse(Makan.Start.bout == "", as.character(start2), as.character(Makan.Start.bout)))
-#trying the within function
-within(BIB.dat2, start.bout<-ifelse(Makan.Start.bout == "", as.character(start2), as.character(Makan.Start.bout)))
+BIB.dat2$start.bout<- with(BIB.dat2, ifelse(Makan.Start.bout == "", as.character(start2), as.character(Makan.Start.bout)))
+#trying the within function - doesn't really work
+#within(BIB.dat2, start.bout<-ifelse(Makan.Start.bout == "", as.character(start2), as.character(Makan.Start.bout)))
 BIB.dat2$start.bout2<- with(BIB.dat2, ifelse(start.bout == "", as.character(start2), as.character(start.bout)))
 
 #don't know when to filter out duplicates....
 #remove duplicate timestamps (only removes 1 duplicate)
 BIB.dat2<-filter(BIB.dat2, dup == "FALSE")
 
-
 #am removing about ~100 'S' bouts in this step
 BIB.dups<- 
-  BIB.dat1 %>% 
-  group_by(timestamp2) %>% BIB.dat2$Makan.Bout.number
+  BIB.dat2 %>% 
+  group_by(timestamp2) %>% 
   filter(n() > 1)
 
 BIB.dups.S<-filter(BIB.dups, Makan.Start.bout == "S")
