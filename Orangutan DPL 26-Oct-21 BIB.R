@@ -85,32 +85,21 @@ BIB.dat2$start.bout<- with(BIB.dat2, ifelse(Makan.Start.bout == "", as.character
 #within(BIB.dat2, start.bout<-ifelse(Makan.Start.bout == "", as.character(start2), as.character(Makan.Start.bout)))
 BIB.dat2$start.bout2<- with(BIB.dat2, ifelse(start.bout == "", as.character(start2), as.character(start.bout)))
 
-#don't know when to filter out duplicates....
 #remove duplicate timestamps (only removes 1 duplicate)
 BIB.dat2<-filter(BIB.dat2, dup == "FALSE")
 
-#am removing about ~100 'S' bouts in this step
-BIB.dups<- 
-  BIB.dat2 %>% 
-  group_by(timestamp2) %>% 
-  filter(n() > 1)
-
-BIB.dups.S<-filter(BIB.dups, Makan.Start.bout == "S")
-#select on a few columns to merge back in
-BIB.dups.S2<-select(BIB.dups.S, timestamp2, Makan.Start.bout, Makan.Bout.number)
-
-#remove duplicate timestamps (keep only one timestamp value)
-BIB.dat2<-filter(BIB.dat1, dup == "FALSE")
-
-#Add 'S' and bout number from duplicated timestamps back into the dataset
-BIB.dat2<-merge(BIB.dat2, BIB.dups.S2, by="timestamp2", all.x=TRUE)
-
-
 #create a MOVE object-----------------------
-BIB.move<-move(x=BIB.dat2$location.long, y=BIB.dat2$location.lat,
-              time=as.POSIXct(BIB.dat2$timestamp2),
+BIB.move<-move::move(x=BIB.dat2$location.long, y=BIB.dat2$location.lat,
+              time=as.POSIXct(BIB.dat2$timestamp2, format="%Y-%m-%d %H:%M:%S"),
               proj=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84"),
-              data=BIB.dat2, animal=BIB.dat2$individual.local.identifier)
+              data=BIB.dat2, animal=BIB.dat2$individual.local.identifier, 
+              removeDuplicatedTimestamps=TRUE)
+
+BIB.moves<-move(x=BIB.dat2.0$location.long, y=BIB.dat2.0$location.lat,
+               time=as.POSIXct(BIB.dat2.0$timestamp2, format="%Y-%m-%d %H:%M:%S"),
+               proj=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84"),
+               data=BIB.dat2.0, animal=BIB.dat2.0$individual.local.identifier, 
+               removeDuplicatedTimestamps=TRUE)
 
 #calculate distance moved between timestamps
 BIB.dist<-distance(BIB.move)
@@ -132,7 +121,6 @@ dist<-distance(GP.move)[1]
 #---------------------------------------------------------
 #rename column
 BIB.dat3<-rename(BIB.dat3, follow = Summary.Reports.Master..Follow.Number)
-
 
 class(BIB.dat3$Makan.Bout.number)
 
