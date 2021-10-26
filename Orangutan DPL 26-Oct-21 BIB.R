@@ -86,20 +86,15 @@ BIB.dat2$start.bout<- with(BIB.dat2, ifelse(Makan.Start.bout == "", as.character
 BIB.dat2$start.bout2<- with(BIB.dat2, ifelse(start.bout == "", as.character(start2), as.character(start.bout)))
 
 #remove duplicate timestamps (only removes 1 duplicate)
-BIB.dat2<-filter(BIB.dat2, dup == "FALSE")
+BIB.dat2<-filter(BIB.dat2, dup2 == "FALSE")
+BIB.dat2<-tbl_df(BIB.dat2)
 
 #create a MOVE object-----------------------
-BIB.move<-move::move(x=BIB.dat2$location.long, y=BIB.dat2$location.lat,
+BIB.move<-move(x=BIB.dat2$location.long, y=BIB.dat2$location.lat,
               time=as.POSIXct(BIB.dat2$timestamp2, format="%Y-%m-%d %H:%M:%S"),
               proj=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84"),
               data=BIB.dat2, animal=BIB.dat2$individual.local.identifier, 
               removeDuplicatedTimestamps=TRUE)
-
-BIB.moves<-move(x=BIB.dat2.0$location.long, y=BIB.dat2.0$location.lat,
-               time=as.POSIXct(BIB.dat2.0$timestamp2, format="%Y-%m-%d %H:%M:%S"),
-               proj=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84"),
-               data=BIB.dat2.0, animal=BIB.dat2.0$individual.local.identifier, 
-               removeDuplicatedTimestamps=TRUE)
 
 #calculate distance moved between timestamps
 BIB.dist<-distance(BIB.move)
@@ -123,23 +118,25 @@ dist<-distance(GP.move)[1]
 BIB.dat3<-rename(BIB.dat3, follow = Summary.Reports.Master..Follow.Number)
 
 class(BIB.dat3$Makan.Bout.number)
-
 #maximum feeding bout number per follow
-Makan.Bout.max<-aggregate(Makan.Bout.number ~ follow, data = BIB.dat3, max)
+Makan.Bout.max<-aggregate(makan.bout.num ~ follow, data = BIB.dat3, max)
+##rename column
+Makan.Bout.max<-rename(Makan.Bout.max, Makan.Bout.max = makan.bout.num)
+#merge data
 BIB.dat4<-merge(BIB.dat3, Makan.Bout.max, by="follow")
 
-
+#------------------can remove all this---?
 ##rename column
 bouts_per_follow<-rename(bouts_per_follow, ttl_makan = n)
-
 #how many feeding bouts per day?
 bouts_per_follow<-filter(bouts_per_follow, Makan.Start.bout2=="S")
 #join ttl number of feeding bouts with dataset
 BIB.dat4<-merge(BIB.dat3, bouts_per_follow, by ="follow")
 #drop column
 BIB.dat4= subset(BIB.dat4, select = -c(Makan.Start.bout2.y))
-
-#row is or is not a feeding bout
+#--------------------------------------------------------
+table(BIB.dat4$Buat.1)
+#label if each row is or is not a feeding bout
 BIB.dat4$is_feed<-ifelse(BIB.dat4$Buat.1 != "M","not feed","feed")
 
 #The zoo R package contains the na.locf function, which is a generic function for replacing each NA
@@ -150,7 +147,7 @@ BIB.dat5<-BIB.dat4[order(as.POSIXct(BIB.dat4$timestamp.y)),]
 #group by follow and add the feeding bout number that preceeds a non-feeding behavior
 BIB.dat6<-BIB.dat5 %>% 
   group_by(follow, .drop=FALSE, add=TRUE) %>% 
-  transmute(Makan.Bout.number2=na.locf(Makan.Bout.number, na.rm=FALSE))%>%
+  transmute(makan.bout.num2=na.locf(makan.bout.num, na.rm=FALSE))%>%
   ungroup()
 #rename follow column
 BIB.dat6<-rename(BIB.dat6, follow2 = follow)
@@ -158,12 +155,19 @@ BIB.dat6<-rename(BIB.dat6, follow2 = follow)
 BIB.dat7<-cbind(BIB.dat5, BIB.dat6)
 
 #---------do not want to include after the last feeding bouts -- need to remove after last feeding bouts 
-BIB.dat7$bout_error<-BIB.dat7$Makan.Bout.number2 > BIB.dat7$ttl_makan
-BIB.bout.error<-filter(BIB.dat7, bout_error == "TRUE")
-#ummm..... ~3700 observations
-#are these errors in the behavioral data?
-follows<-unique(BIB.bout.error$follow)
-#122 follows
+BIB.dat7$bout_error<-BIB.dat7$makan.bout.num2 > BIB.dat7$Makan.Bout.max 
+
+#Turn behaviors into categories to filter by, so we only add distances for the non-feeding behaviors
+
+#combine 'feed or not feed behavior' & most recent feeding bout number
+#probably needs to be cleaned up (remove NA's and only numbers)
+BIB.dat7$makan.bout.num3<-paste(BIB.dat7$makan.bout.num2, BIB.dat7$is_feed)
+
+#I think this works ok
+BIB.dat7$S_makan_num<-ifelse(BIB.dat7$start.bout2 ==" ", paste(BIB.dat7$makan.bout.num3), paste(BIB.dat7$start.bout2, BIB.dat7$makan.bout.num3)) 
+
+BIB.dat7$last_bout<-ifelse(BIB.dat7$makan.bout.num2 != BIB.dat7$Makan.Bout.max, "not last","last")
+BIB.dat7$S_makan_num_last<-paste(BIB.dat7$S_makan_num, BIB.dat7$last_bout)
 
 #-----------move below, haven't created column yet
 
@@ -171,8 +175,7 @@ follows<-unique(BIB.bout.error$follow)
 #filter out all 'XX non feed' for last bout
 
 #row is or is not a feeding bout
-BIB.dat7$last_bout<-ifelse(BIB.dat7$Makan.Bout.number2 != BIB.dat7$ttl_makan, "not last","last")
-BIB.dat7$S_makan_num_last<-paste(BIB.dat7$S_makan_num, BIB.dat7$last_bout)
+
 
 BIB.dat8<-filter(BIB.dat7, S_makan_num_last != "1 feed last")
 BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "2 feed last")
@@ -186,14 +189,7 @@ BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "9 feed last")
 
 #-----------------------------------------------------------------------
 
-#Turn behaviors into categories to filter by, so we only add distances for the non-feeding behaviors
 
-#combine 'feed or not feed behavior' & most recent feeding bout number
-#probably needs to be cleaned up (remove NA's and only numbers)
-BIB.dat7$makan_num<-paste(BIB.dat7$Makan.Bout.number2, BIB.dat7$is_feed)
-BIB.dat7$S_makan_num<-paste(BIB.dat7$Makan.Start.bout2.x, BIB.dat7$makan_num)
-#change into factors
-#BIB.dat7$S_makan_num<-as.factor(BIB.dat7$S_makan_num)
 
 
 #------------------move code above here..?
