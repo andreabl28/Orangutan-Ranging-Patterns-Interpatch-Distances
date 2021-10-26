@@ -117,7 +117,9 @@ dist<-distance(GP.move)[1]
 #rename column
 BIB.dat3<-rename(BIB.dat3, follow = Summary.Reports.Master..Follow.Number)
 
-class(BIB.dat3$Makan.Bout.number)
+class(BIB.dat3$makan.bout.num)
+BIB.dat3$makan.bout.num<-as.numeric(BIB.dat3$makan.bout.num)
+
 #maximum feeding bout number per follow
 Makan.Bout.max<-aggregate(makan.bout.num ~ follow, data = BIB.dat3, max)
 ##rename column
@@ -155,7 +157,8 @@ BIB.dat6<-rename(BIB.dat6, follow2 = follow)
 BIB.dat7<-cbind(BIB.dat5, BIB.dat6)
 
 #---------do not want to include after the last feeding bouts -- need to remove after last feeding bouts 
-BIB.dat7$bout_error<-BIB.dat7$makan.bout.num2 > BIB.dat7$Makan.Bout.max 
+#what to do with NA's?
+BIB.dat7$last_bout<-ifelse(BIB.dat7$makan.bout.num2 == BIB.dat7$Makan.Bout.max, "last", "not last")
 
 #Turn behaviors into categories to filter by, so we only add distances for the non-feeding behaviors
 
@@ -163,19 +166,24 @@ BIB.dat7$bout_error<-BIB.dat7$makan.bout.num2 > BIB.dat7$Makan.Bout.max
 #probably needs to be cleaned up (remove NA's and only numbers)
 BIB.dat7$makan.bout.num3<-paste(BIB.dat7$makan.bout.num2, BIB.dat7$is_feed)
 
-#I think this works ok
-BIB.dat7$S_makan_num<-ifelse(BIB.dat7$start.bout2 ==" ", paste(BIB.dat7$makan.bout.num3), paste(BIB.dat7$start.bout2, BIB.dat7$makan.bout.num3)) 
+#---------need to add S + bout number + feed/not feed (and remove all NA's)
+#------need to fix this variable --- need to remove 'last' and 'not last', not sure when they're added. 
+#This new variable is used to match to categories below (cat_1_2)
+library(stringr)
+BIB.dat7$S_makan_num2<-paste(BIB.dat7$start.bout2, BIB.dat7$S_makan_num)
+BIB.dat7$S_makan_num2<-str_remove(BIB.dat7$S_makan_num2, "NA")
+
 
 BIB.dat7$last_bout<-ifelse(BIB.dat7$makan.bout.num2 != BIB.dat7$Makan.Bout.max, "not last","last")
-BIB.dat7$S_makan_num_last<-paste(BIB.dat7$S_makan_num, BIB.dat7$last_bout)
+BIB.dat7$S_makan_num_last<-paste(BIB.dat7$makan.bout.num3, BIB.dat7$last_bout)
 
-#-----------move below, haven't created column yet
+table(BIB.dat7$S_makan_num_last)
 
 #if feeding bout# == the total number of feeding bouts
 #filter out all 'XX non feed' for last bout
 
 #row is or is not a feeding bout
-
+#is 25 enough?
 
 BIB.dat8<-filter(BIB.dat7, S_makan_num_last != "1 feed last")
 BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "2 feed last")
@@ -186,20 +194,29 @@ BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "6 feed last")
 BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "7 feed last")
 BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "8 feed last")
 BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "9 feed last")
-
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "10 feed last")
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "11 feed last")
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "12 feed last")
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "13 feed last")
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "14 feed last")
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "15 feed last")
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "16 feed last")
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "17 feed last")
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "18 feed last")
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "19 feed last")
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "20 feed last")
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "21 feed last")
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "22 feed last")
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "23 feed last")
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "24 feed last")
+BIB.dat8<-filter(BIB.dat8, S_makan_num_last != "25 feed last")
 #-----------------------------------------------------------------------
 
-
-
-
-#------------------move code above here..?
-
-
-
+#NOT RUNNING BECAUSE NEED TO TAKE OUT 'NOT LAST'. Don't know where it gets added in.
 
 #recode data values into categories (e.g. cat 1_2 is the travel distance between category 1 and 2)
 #recode(char_vec, a = "Apple", b = "Banana")
-BIB.dat7$S_makan_cat<-recode(BIB.dat7$S_makan_num, 
+BIB.dat8$S_makan_cat<-recode(BIB.dat8$S_makan_num, 
   " 1 not feed" = "cat 1_2", "S 2 feed" = "cat 1_2",
   " 2 not feed" = "cat 2_3", "S 3 feed" = "cat 2_3", 
   " 3 not feed" = "cat 3_4", "S 4 feed" = "cat 3_4",
@@ -221,19 +238,24 @@ BIB.dat7$S_makan_cat<-recode(BIB.dat7$S_makan_num,
   " 19 not feed" = "cat 19_20", "S 20 feed" = "cat 19_20", 
   " 20 not feed" = "cat 20_21", "S 21 feed" = "cat 20_21", 
   " 21 not feed" = "cat 21_22", "S 22 feed" = "cat 21_22", 
-  " 22 not feed" = "cat 22_23", "S 22 feed" = "cat 22_23", 
-  " 23 not feed" = "cat 23_24", "S 23 feed" = "cat 23_24", 
-  " 24 not feed" = "cat 24_25", "S 24 feed" = "cat 24_25", 
-  " 25 not feed" = "cat 25_26", "S 25 feed" = "cat 25_26", 
-  " 26 not feed" = "cat 26_27", "S 26 feed" = "cat 26_27", 
-  " 27 not feed" = "cat 27_28", "S 27 feed" = "cat 27_28", 
-  " 28 not feed" = "cat 28_29", "S 28 feed" = "cat 28_29", 
-  " 29 not feed" = "cat 29_30", "S 29 feed" = "cat 29_30", 
-  " 30 not feed" = "cat 30_31", "S 30 feed" = "cat 30_31", 
+  " 22 not feed" = "cat 22_23", "S 23 feed" = "cat 22_23", 
+  " 23 not feed" = "cat 23_24", "S 24 feed" = "cat 23_24", 
+  " 24 not feed" = "cat 24_25", "S 25 feed" = "cat 24_25", 
+  " 25 not feed" = "cat 25_26", "S 26 feed" = "cat 25_26", 
+  " 26 not feed" = "cat 26_27", "S 27 feed" = "cat 26_27", 
+  " 27 not feed" = "cat 27_28", "S 28 feed" = "cat 27_28", 
+  " 28 not feed" = "cat 28_29", "S 29 feed" = "cat 28_29", 
+  " 29 not feed" = "cat 29_30", "S 30 feed" = "cat 29_30", 
+  " 30 not feed" = "cat 30_31", "S 31 feed" = "cat 30_31",
+  " 31 not feed" = "cat 31_32", "S 32 feed" = "cat 31_32",
+  " 32 not feed" = "cat 32_33", "S 33 feed" = "cat 32_33",
+  " 33 not feed" = "cat 33_34", "S 34 feed" = "cat 33_34",
+  " 34 not feed" = "cat 34_35", "S 35 feed" = "cat 34_35",
+  " 35 not feed" = "cat 35_36", "S 36 feed" = "cat 35_36" 
   )
 
 #would need to filter before
-BIB_distances<-aggregate(BIB.dat7$BIB.dist, by=list(Category=BIB.dat7$follow, BIB.dat7$S_makan_cat), FUN=sum)
+BIB_distances<-aggregate(BIB.dat8$BIB.dist, by=list(Category=BIB.dat8$follow, BIB.dat8$S_makan_cat), FUN=sum)
 BIB_distances$S_makan_cat<-BIB_distances$Group.2
 
 #select just for the categories
@@ -244,13 +266,14 @@ BIB_distances<-filter(BIB_distances, S_makan_cat == "cat 1_2" | S_makan_cat == "
         S_makan_cat == "cat 16_17" | S_makan_cat == "cat 17_18" | S_makan_cat == "cat 18_19" | S_makan_cat == "cat 19_20" |
         S_makan_cat == "cat 20_21" | S_makan_cat == "cat 21_22" | S_makan_cat == "cat 22_23" | S_makan_cat == "cat 23_24" |
         S_makan_cat == "cat 24_25" | S_makan_cat == "cat 25_26" | S_makan_cat == "cat 26_27" | S_makan_cat == "cat 27_28" |
-        S_makan_cat == "cat 28_29" | S_makan_cat == "cat 29_30" | S_makan_cat == "cat 30_31" 
+        S_makan_cat == "cat 28_29" | S_makan_cat == "cat 29_30" | S_makan_cat == "cat 30_31" | S_makan_cat == "cat 31_32" |
+        S_makan_cat == "cat 32_33"| S_makan_cat == "cat 33_34" | S_makan_cat == "cat 34_35"| S_makan_cat == "cat 35_36"
         )
 
 BIB_distances$OH<-c(rep("BIB", nrow(BIB_distances)))
 
 mean(BIB_distances$x)
-#157
+#156.9
 
 #add in OH offspring age based on follow #
 age_offspring<-read.csv("Age of youngest offspring export 14Oct2021.csv")
@@ -265,7 +288,7 @@ reg1 <- lm(dist_btw_bouts~Age.of.Youngest.Offspring,data=BIB_distances2)
 summary(reg1)
 
 plot(BIB_distances2$Age.of.Youngest.Offspring, BIB_distances2$dist_btw_bouts, 
-     ylim=c(0,500))
+     ylim=c(0, 500))
 abline(reg1, col=c("blue"))
 
 #export dataset as a csv
@@ -276,6 +299,9 @@ abline(reg1, col=c("blue"))
 #checking the data
 
 #194 observations
-BIB.6132<-filter(BIB, Summary.Reports.Master..Follow.Number == "6132")
+BIB.6132<-filter(BIB.dat8, Summary.Reports.Master..Follow.Number == "6132")
+
+BIB.6982<-filter(BIB.dat8, follow == "6982")
+
 #157 observations
 BIB.join.6132<-filter(BIB.dat1, Summary.Reports.Master.2..Follow.Number == "6132")
